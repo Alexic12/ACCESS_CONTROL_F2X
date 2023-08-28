@@ -1,18 +1,23 @@
 #include <Arduino.h>
+#include "fsm.h"
+
+fsm F;
 
 // put function declarations here:
-int myFunction(int, int);
 
+CONFIG_ERROR();
 void setup() {
   // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+  Serial.begin(115200);
+  //Serial.print("FIELD CONTROL ACCESS UNIT.....INIT");
+  fsm::initFSM();
+
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
+  //Serial.print("FIELD CONTROL ACCESS UNIT.....INIT");
+  fsm::runFSM();
+  //delay(1000);
 }
 
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
-}
