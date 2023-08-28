@@ -35,11 +35,11 @@ err_t fsm::F_init(fsm_action action) {
     if (action == ACTION_ENTRY) {  // 1 single time
 
         delay(2000);
-        Serial.print("F.INIT, Entry");
+        Serial.println("F.INIT, Entry");
 
     } else if (action == ACTION_PROCESS) {
 
-        Serial.print("F.INIT, Process");
+        Serial.println("F.INIT, Process");
         delay(1000);
 
         State_M::fsm_changeState(&Machine_FSM, &FSM_diag);
@@ -47,7 +47,7 @@ err_t fsm::F_init(fsm_action action) {
 
     } else if (action == ACTION_EXIT) {  // 1 single time
 
-     Serial.print("F.INIT, Exit");
+     Serial.println("F.INIT, Exit");
         delay(1000);
     }
     NOERR();
