@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 #include "error.h"
-#include "ethernet_comms.h"
+#include "../drivers/ethernet_comms.h"
 
 
 class Reader{

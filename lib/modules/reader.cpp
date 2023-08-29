@@ -11,5 +11,5 @@ unsigned char Reader::antena_3[] = {0x53, 0x57, 0x00, 0x03, 0xFF, 0x01, 0x53};
 err_t Reader::send_id(antenna_t ant, unsigned char tag[], access_res_t& res) {
 
 
-
+    NOERR();
 }

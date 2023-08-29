@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include "error.h"
+#include <Ethernet.h>
 
 
 class EthernetComms{
@@ -25,10 +26,16 @@ class EthernetComms{
         }conn_res_t;
 
         static err_t conn_init(request_type_t req);
-        static err_t request(request_type_t req, uint16_t& data);
+        static err_t connect(bool& res);
+        static err_t disconnect();
+        static err_t request(request_type_t req, const char* data, bool& res);
+        static String receive();
 
 
     private:
+
+        static uint16_t port;
+        static byte mac[];
 
 
 
