@@ -62,7 +62,7 @@ void Reader::send_cmd_s(uint8_t cmd){
 
     // Print the frame
     for(int i = 0; i < dataLength + 5; i++) {
-        Serial.print(frame[i], HEX);
+        Serial.print(frame[i]);
         Serial.print(" ");
     }
     Serial.println();
