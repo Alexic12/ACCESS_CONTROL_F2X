@@ -4,6 +4,7 @@
 //#include "../program.h"
 #include "StateMachine.h"
 #include <Arduino.h>
+#include "reader.h"
 
 
 class fsm {
@@ -27,6 +28,7 @@ class fsm {
     static fsm_stateHandle_t FSM_init;
     static fsm_stateHandle_t FSM_diag;
     static fsm_stateHandle_t FSM_oper;
+    
 
     // Variable for storing the menus
 };

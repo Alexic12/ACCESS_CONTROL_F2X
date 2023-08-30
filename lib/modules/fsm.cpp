@@ -3,6 +3,9 @@
 
 CONFIG_ERROR();
 
+//OBJECT DECLARATION FOR ALL PROCESSES
+Reader R; //RFID Reader Class Object
+
 // Function define so the states recognize them
 err_t F_init(fsm_action action);
 err_t F_diag(fsm_action action);
@@ -57,17 +60,17 @@ err_t fsm::F_diag(fsm_action action) {
     if (action == ACTION_ENTRY) {  // 1 single time
 
         delay(2000);
-        Serial.print("F.DIAG, Entry");
+        Serial.println("F.DIAG, Entry");
 
     } else if (action == ACTION_PROCESS) {
 
-        Serial.print("F.DIAG, Process");
+        Serial.println("F.DIAG, Process");
         delay(1000);
         State_M::fsm_changeState(&Machine_FSM, &FSM_oper);
        
     } else if (action == ACTION_EXIT) {  // 1 single time
 
-        Serial.print("F.DIAG, Exit");
+        Serial.println("F.DIAG, Exit");
         delay(1000);
     }
     NOERR();
@@ -78,17 +81,19 @@ err_t fsm::F_oper(fsm_action action) {
     if (action == ACTION_ENTRY) {  // 1 single time
 
         delay(2000);
-        Serial.print("F.OPER, Entry");
+        Serial.println("F.OPER, Entry");
 
     } else if (action == ACTION_PROCESS) {
 
-        Serial.print("F.OPER, Process");
+        Serial.println("F.OPER, Process");
+        R.send_cmd_s(TAG_INV);
         delay(1000);
        
 
     } else if (action == ACTION_EXIT) {  // 1 single time
 
-        Serial.print("F.OPER, Exit");
+        Serial.println("F.OPER, Exit");
+
         delay(1000);
     }
     NOERR();
