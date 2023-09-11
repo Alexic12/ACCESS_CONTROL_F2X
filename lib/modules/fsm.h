@@ -5,6 +5,7 @@
 #include "StateMachine.h"
 #include <Arduino.h>
 #include "reader.h"
+#include "ethernet_comms.h"
 
 
 class fsm {

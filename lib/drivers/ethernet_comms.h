@@ -3,7 +3,8 @@
 
 #include <Arduino.h>
 #include "error.h"
-#include <Ethernet.h>
+#include "NativeEthernet.h"
+#include "reader.h"
 
 
 class EthernetComms{
@@ -25,11 +26,12 @@ class EthernetComms{
 
         }conn_res_t;
 
-        static err_t conn_init(request_type_t req);
-        static err_t connect(bool& res);
+        static err_t conn_init();
+        static err_t connect_reader();
         static err_t disconnect();
         static err_t request(request_type_t req, const char* data, bool& res);
-        static String receive();
+        static err_t receive();
+        static err_t send(byte* array, uint16_t dataLength);
 
 
     private:

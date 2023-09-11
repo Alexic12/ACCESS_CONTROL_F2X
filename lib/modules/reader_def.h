@@ -3,6 +3,19 @@
 
 #define DEV_ADDR 0x00
 
+
+//Antenna Address
+#define ANT_1 0x80
+#define ANT_2 0x81
+#define ANT_3 0x82
+#define ANT_4 0x83 
+
+#define R_ANT_1 0x01
+#define R_ANT_2 0x02
+#define R_ANT_3 0x04
+#define R_ANT_4 0x08 
+
+
 // 18000-6C Commands
 #define TAG_INV 0x01
 #define READ_DATA 0x02

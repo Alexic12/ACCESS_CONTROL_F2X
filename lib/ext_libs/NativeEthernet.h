@@ -38,17 +38,21 @@
 #else
 #define MAX_SOCK_NUM 8
 #endif
+#define FNET_SOCKET_DEFAULT_SIZE 1024 * 2
+#define FNET_STACK_HEAP_DEFAULT_SIZE 64u * 1024u //64k
+#define FNET_POLL_TIME 1000 //Time in microseconds
 
-// By default, each socket uses 2K buffers inside the WIZnet chip.  If
+// By default, each socket uses 2K buffers inside the Wiznet chip.  If
 // MAX_SOCK_NUM is set to fewer than the chip's maximum, uncommenting
-// this will use larger buffers within the WIZnet chip.  Large buffers
+// this will use larger buffers within the Wiznet chip.  Large buffers
 // can really help with UDP protocols like Artnet.  In theory larger
 // buffers should allow faster TCP over high-latency links, but this
-// does not always seem to work in practice (maybe WIZnet bugs?)
+// does not always seem to work in practice (maybe Wiznet bugs?)
 //#define ETHERNET_LARGE_BUFFERS
 
 
 #include <Arduino.h>
+#include <fnet.h>
 #include "Client.h"
 #include "Server.h"
 #include "Udp.h"
@@ -69,22 +73,37 @@ enum EthernetHardwareStatus {
 class EthernetUDP;
 class EthernetClient;
 class EthernetServer;
-class DhcpClass;
 
 class EthernetClass {
 private:
 	static IPAddress _dnsServerAddress;
-	static DhcpClass* _dhcp;
+    static DMAMEM uint8_t** socket_buf_transmit;
+    static DMAMEM uint16_t* socket_buf_len;
+    static DMAMEM uint16_t* socket_port;
+    static DMAMEM uint8_t** socket_addr;
+    static IntervalTimer _fnet_poll;
+    static volatile boolean link_status;
+    static uint8_t* stack_heap_ptr;
+    static size_t stack_heap_size;
+    static ssize_t socket_size;
+    static uint8_t socket_num;
 public:
+    static volatile fnet_socket_t* socket_ptr;
+    static DMAMEM uint8_t** socket_buf_receive;
+    static DMAMEM uint16_t* socket_buf_index;
 	// Initialise the Ethernet shield to use the provided MAC address and
 	// gain the rest of the configuration through DHCP.
 	// Returns 0 if the DHCP configuration failed, and 1 if it succeeded
+    static void setStackHeap(uint8_t* stack_heap_ptr, size_t stack_heap_size); //Appoint your own buffer
+    static void setStackHeap(size_t stack_heap_size); //Change allocated stack heap size
+    static void setSocketSize(size_t _socket_size); //Change allocated socket size
+    static void setSocketNum(uint8_t _socket_num); //Change allocated socket num
 	static int begin(uint8_t *mac, unsigned long timeout = 60000, unsigned long responseTimeout = 4000);
 	static int maintain();
 	static EthernetLinkStatus linkStatus();
 	static EthernetHardwareStatus hardwareStatus();
 
-	// Manual configuration
+	// Manaul configuration
 	static void begin(uint8_t *mac, IPAddress ip);
 	static void begin(uint8_t *mac, IPAddress ip, IPAddress dns);
 	static void begin(uint8_t *mac, IPAddress ip, IPAddress dns, IPAddress gateway);
@@ -95,24 +114,26 @@ public:
 	static IPAddress localIP();
 	static IPAddress subnetMask();
 	static IPAddress gatewayIP();
-	static IPAddress dnsServerIP() { return _dnsServerAddress; }
+    static IPAddress dhcpServerIP();
+	static IPAddress dnsServerIP() { return fnet_netif_get_ip4_dns(fnet_netif_get_default()); }
 
 	void setMACAddress(const uint8_t *mac_address);
 	void setLocalIP(const IPAddress local_ip);
 	void setSubnetMask(const IPAddress subnet);
 	void setGatewayIP(const IPAddress gateway);
-	void setDnsServerIP(const IPAddress dns_server) { _dnsServerAddress = dns_server; }
+    void setDnsServerIP(const IPAddress dns_server);
 	void setRetransmissionTimeout(uint16_t milliseconds);
 	void setRetransmissionCount(uint8_t num);
 
 	friend class EthernetClient;
 	friend class EthernetServer;
 	friend class EthernetUDP;
+    static uint8_t socketStatus(uint8_t s);
 private:
 	// Opens a socket(TCP or UDP or IP_RAW mode)
 	static uint8_t socketBegin(uint8_t protocol, uint16_t port);
 	static uint8_t socketBeginMulticast(uint8_t protocol, IPAddress ip,uint16_t port);
-	static uint8_t socketStatus(uint8_t s);
+	
 	// Close socket
 	static void socketClose(uint8_t s);
 	// Establish TCP connection (Active connection)
@@ -139,9 +160,17 @@ private:
 	// Send a UDP datagram built up from a sequence of startUDP followed by one or more
 	// calls to bufferData.
 	// return true if the datagram was successfully sent, or false if there was an error
-	static bool socketSendUDP(uint8_t s);
+	static bool socketSendUDP(uint8_t s, fnet_flag_t flags = 0);
 	// Initialize the "random" source port number
 	static void socketPortRand(uint16_t n);
+    
+    static fnet_return_t teensy_mutex_init(fnet_mutex_t *mutex);
+    static void teensy_mutex_release(fnet_mutex_t *mutex);
+    static void teensy_mutex_lock(fnet_mutex_t *mutex);
+    static void teensy_mutex_unlock(fnet_mutex_t *mutex);
+    static fnet_time_t timer_get_ms(void);
+    static void link_callback(fnet_netif_desc_t netif, fnet_bool_t connected, void *callback_param);
+    static void dhcp_cln_callback_updated(fnet_dhcp_cln_desc_t _dhcp_desc, fnet_netif_desc_t netif, void *p);
 };
 
 extern EthernetClass Ethernet;
@@ -157,10 +186,15 @@ private:
 	uint16_t _offset; // offset into the packet being sent
 
 protected:
-	uint8_t sockindex;
-	uint16_t _remaining; // remaining bytes of incoming packet yet to be processed
+	
+	volatile uint16_t _remaining; // remaining bytes of incoming packet yet to be processed
 
 public:
+    uint8_t sockindex;
+    int32_t recv_timestamp = 0;
+    int32_t send_timestamp = 0;
+    uint32_t recv_timestamp_ns = 0;
+    uint32_t send_timestamp_ns = 0;
 	EthernetUDP() : sockindex(MAX_SOCK_NUM) {}  // Constructor
 	virtual uint8_t begin(uint16_t);      // initialize, start listening on specified port. Returns 1 if successful, 0 if there are no sockets available to use
 	virtual uint8_t beginMulticast(IPAddress, uint16_t);  // initialize, start listening on specified port. Returns 1 if successful, 0 if there are no sockets available to use
@@ -177,6 +211,7 @@ public:
 	// Finish off this packet and send it
 	// Returns 1 if the packet was sent successfully, 0 if there was an error
 	virtual int endPacket();
+    virtual int endPacket(fnet_flag_t flags);
 	// Write a single byte into the packet
 	virtual size_t write(uint8_t);
 	// Write size bytes from buffer into the packet
@@ -213,13 +248,18 @@ public:
 
 class EthernetClient : public Client {
 public:
-	EthernetClient() : _sockindex(MAX_SOCK_NUM), _timeout(1000) { }
-	EthernetClient(uint8_t s) : _sockindex(s), _timeout(1000) { }
-	virtual ~EthernetClient() {};
+	EthernetClient() : sockindex(MAX_SOCK_NUM), _timeout(10000), _connectPoll(false), _remaining(0) { }
+	EthernetClient(uint8_t s) : sockindex(s), _timeout(10000), _connectPoll(false), _remaining(0) { }
 
 	uint8_t status();
-	virtual int connect(IPAddress ip, uint16_t port);
-	virtual int connect(const char *host, uint16_t port);
+#if FNET_CFG_TLS
+    virtual int connect(IPAddress ip, uint16_t port, bool tls);
+    virtual int connect(const char *host, uint16_t port, bool tls);
+#endif
+    virtual int connect(IPAddress ip, uint16_t port);
+    virtual int connect(const char *host, uint16_t port);
+    virtual int connectPoll();
+    virtual void connectPoll(bool active) { _connectPoll = active; }
 	virtual int availableForWrite(void);
 	virtual size_t write(uint8_t);
 	virtual size_t write(const uint8_t *buf, size_t size);
@@ -229,36 +269,80 @@ public:
 	virtual int peek();
 	virtual void flush();
 	virtual void stop();
+    virtual void close();
 	virtual uint8_t connected();
-	virtual operator bool() { return _sockindex < MAX_SOCK_NUM; }
-	virtual bool operator==(const bool value) { return bool() == value; }
-	virtual bool operator!=(const bool value) { return bool() != value; }
+    virtual operator bool() { getClientAddress(); return sockindex < Ethernet.socket_num; }
+    virtual bool operator==(const bool value) { getClientAddress(); return bool() == value; }
+    virtual bool operator!=(const bool value) { getClientAddress(); return bool() != value; }
 	virtual bool operator==(const EthernetClient&);
-	virtual bool operator!=(const EthernetClient& rhs) { return !this->operator==(rhs); }
-	uint8_t getSocketNumber() const { return _sockindex; }
-	virtual uint16_t localPort();
-	virtual IPAddress remoteIP();
-	virtual uint16_t remotePort();
+    virtual bool operator!=(const EthernetClient& rhs) { getClientAddress(); return !this->operator==(rhs); }
+	uint8_t getSocketNumber() const { return sockindex; }
+	// Return the IP address of the host who sent the current incoming packet
+    virtual IPAddress remoteIP() { return _remoteIP; };
+    // Return the port of the host who sent the current incoming packet
+    virtual uint16_t remotePort() { return _remotePort; };
+    virtual uint16_t localPort() { return _port; }
 	virtual void setConnectionTimeout(uint16_t timeout) { _timeout = timeout; }
-
+        
+#if FNET_CFG_TLS
+    void setCACert(const char* cert_buf, size_t cert_buf_len){
+        ca_certificate_buffer = (fnet_uint8_t*)cert_buf;
+        ca_certificate_buffer_size = cert_buf_len;
+    }
+#endif
 	friend class EthernetServer;
 
 	using Print::write;
 
 private:
-	uint8_t _sockindex; // MAX_SOCK_NUM means client not in use
+	uint8_t sockindex; // MAX_SOCK_NUM means client not in use
 	uint16_t _timeout;
+    uint16_t _port; // local port to listen on
+    IPAddress _remoteIP; // remote IP address for the incoming packet whilst it's being processed
+    uint16_t _remotePort; // remote port for the incoming packet whilst it's being processed
+    IPAddress _connectIP; // remote IP address for the incoming packet whilst it's being connected
+    uint16_t _connectPort; // remote port for the incoming packet whilst it's being connected
+    boolean _connectPoll; //Determines if connectPoll is active or not
+    int32_t _remaining;
+    void getClientAddress() {
+        if(sockindex < Ethernet.socket_num){
+            struct fnet_sockaddr _from;
+            fnet_size_t fromlen = sizeof(_from);
+            fnet_return_t ret = fnet_socket_getpeername(Ethernet.socket_ptr[sockindex], &_from, &fromlen);
+            if(ret == FNET_OK){
+                _remoteIP = _from.sa_data;
+                _remotePort = FNET_HTONS(_from.sa_port);
+            }
+        }
+    }
+        
+#if FNET_CFG_TLS
+    fnet_tls_desc_t tls_desc = 0;
+    bool _tls_en = false;
+    const char* host_name = NULL;
+    fnet_uint8_t* ca_certificate_buffer = (fnet_uint8_t*)mbedtls_test_ca_crt; /* Certificate data. */
+    fnet_size_t ca_certificate_buffer_size = mbedtls_test_ca_crt_len;              /* Size of the certificate buffer. */
+#endif
 };
 
 
 class EthernetServer : public Server {
 private:
-	uint16_t _port;
+    static void poll(void* cookie);
+	
 public:
-	EthernetServer(uint16_t port) : _port(port) { }
+#if FNET_CFG_TLS
+	EthernetServer(uint16_t port) : _port(port), _tls_en(false) { }
+	EthernetServer(uint16_t port, bool tls_en) : _port(port), _tls_en(tls_en) { }
+    EthernetServer() : _port(0), _tls_en(false) { }
+#else
+    EthernetServer(uint16_t port) : _port(port) { }
+    EthernetServer() : _port(0) { }
+#endif
 	EthernetClient available();
 	EthernetClient accept();
 	virtual void begin();
+    void begin(uint16_t port) { _port = port; begin(); }
 	virtual size_t write(uint8_t);
 	virtual size_t write(const uint8_t *buf, size_t size);
 	virtual operator bool();
@@ -266,57 +350,53 @@ public:
 	//void statusreport();
 
 	// TODO: make private when socket allocation moves to EthernetClass
-	static uint16_t server_port[MAX_SOCK_NUM];
-};
-
-
-class DhcpClass {
-private:
-	uint32_t _dhcpInitialTransactionId;
-	uint32_t _dhcpTransactionId;
-	uint8_t  _dhcpMacAddr[6];
-#ifdef __arm__
-	uint8_t  _dhcpLocalIp[4] __attribute__((aligned(4)));
-	uint8_t  _dhcpSubnetMask[4] __attribute__((aligned(4)));
-	uint8_t  _dhcpGatewayIp[4] __attribute__((aligned(4)));
-	uint8_t  _dhcpDhcpServerIp[4] __attribute__((aligned(4)));
-	uint8_t  _dhcpDnsServerIp[4] __attribute__((aligned(4)));
-#else
-	uint8_t  _dhcpLocalIp[4];
-	uint8_t  _dhcpSubnetMask[4];
-	uint8_t  _dhcpGatewayIp[4];
-	uint8_t  _dhcpDhcpServerIp[4];
-	uint8_t  _dhcpDnsServerIp[4];
+	static uint16_t* server_port;
+    uint16_t _port;
+    fnet_service_desc_t service_descriptor;
+    
+#if FNET_CFG_TLS
+    void begin(uint16_t port, bool tls_en) { _port = port; _tls_en = tls_en; begin(); }
+    void setSRVCert(const char* cert_buf, size_t cert_buf_len){
+        certificate_buffer = (fnet_uint8_t*)cert_buf;
+        certificate_buffer_size = cert_buf_len;
+    }
+    void setSRVKey(const char* key_buf, size_t key_buf_len){
+        private_key_buffer = (fnet_uint8_t*)key_buf;
+        private_key_buffer_size = key_buf_len;
+    }
+    
+    static bool* _tls;
+    fnet_tls_desc_t tls_desc = 0;
+    bool _tls_en;
+    static fnet_tls_socket_t* tls_socket_ptr;
+    fnet_uint8_t* certificate_buffer = (fnet_uint8_t*)mbedtls_test_srv_crt; /* Certificate data. */
+    fnet_size_t certificate_buffer_size = mbedtls_test_srv_crt_len;              /* Size of the certificate buffer. */
+    fnet_uint8_t* private_key_buffer = (fnet_uint8_t*)mbedtls_test_srv_key; /* Private key. */
+    fnet_size_t private_key_buffer_size = mbedtls_test_srv_key_len;             /* Size of the private key buffer. */
 #endif
-	uint32_t _dhcpLeaseTime;
-	uint32_t _dhcpT1, _dhcpT2;
-	uint32_t _renewInSec;
-	uint32_t _rebindInSec;
-	unsigned long _timeout;
-	unsigned long _responseTimeout;
-	unsigned long _lastCheckLeaseMillis;
-	uint8_t _dhcp_state;
-	EthernetUDP _dhcpUdpSocket;
-
-	int request_DHCP_lease();
-	void reset_DHCP_lease();
-	void presend_DHCP();
-	void send_DHCP_MESSAGE(uint8_t, uint16_t);
-	void printByte(char *, uint8_t);
-
-	uint8_t parseDHCPResponse(unsigned long responseTimeout, uint32_t& transactionId);
-public:
-	IPAddress getLocalIp();
-	IPAddress getSubnetMask();
-	IPAddress getGatewayIp();
-	IPAddress getDhcpServerIp();
-	IPAddress getDnsServerIp();
-
-	int beginWithDHCP(uint8_t *, unsigned long timeout = 60000, unsigned long responseTimeout = 4000);
-	int checkLease();
 };
 
 
+class EthernetMDNS{
+public:
+    void begin(const char* host_name, uint8_t num_services = 1);
+    void addService(const char* service_type, uint16_t service_port, const fnet_mdns_txt_key_t* (*service_get_txt)(void) = EmptyTXTRecord);
+    void removeService(const char* service_type);
+    void setServiceName(const char* service_name);
+protected:
+private:
+    fnet_mdns_desc_t mdns_desc;
+    fnet_mdns_service_desc_t *service_desc;
+    uint8_t num_service_desc;
+    static const fnet_mdns_txt_key_t* EmptyTXTRecord(){
+        static const fnet_mdns_txt_key_t NullTXTRecord[] = {
+            {0,0}
+        };
+        return NullTXTRecord;
+    }
+};
+
+extern EthernetMDNS MDNS;
 
 
 

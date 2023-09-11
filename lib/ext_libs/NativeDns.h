@@ -1,11 +1,11 @@
-// Arduino DNS client for WIZnet W5100-based Ethernet shield
+// Arduino DNS client for WizNet5100-based Ethernet shield
 // (c) Copyright 2009-2010 MCQN Ltd.
 // Released under Apache License, version 2.0
 
 #ifndef DNSClient_h
 #define DNSClient_h
 
-#include "Ethernet.h"
+#include "NativeEthernet.h"
 
 class DNSClient
 {
@@ -29,12 +29,11 @@ public:
 	int getHostByName(const char* aHostname, IPAddress& aResult, uint16_t timeout=5000);
 
 protected:
-	uint16_t BuildRequest(const char* aName);
-	uint16_t ProcessResponse(uint16_t aTimeout, IPAddress& aAddress);
+    static void fnet_dns_callback(const fnet_dns_resolved_addr_t* addr_list, long unsigned int addr_list_size, const char* host_name, void* cookie);
 
 	IPAddress iDNSServer;
-	uint16_t iRequestId;
-	EthernetUDP iUdp;
+    volatile fnet_ssize_t resolveDone;
+    IPAddress resolvedIP;
 };
 
 #endif

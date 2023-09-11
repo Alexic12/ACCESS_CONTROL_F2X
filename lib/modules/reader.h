@@ -3,7 +3,6 @@
 
 #include <Arduino.h>
 #include <iostream>
-#include <vector>
 #include <sstream>
 #include "error.h"
 #include "../drivers/ethernet_comms.h"
@@ -27,9 +26,13 @@ class Reader{
         }antenna_t;
         
         static err_t send_id(antenna_t ant, unsigned char tag[], access_res_t& res);
+        static uint16_t uiCrc16Cal(unsigned char const  * pucY, unsigned char ucX);
         static uint16_t crc16(const uint8_t *data, size_t length);
         static void create_command_frame(uint8_t adr, uint8_t cmd, const uint8_t* data, size_t dataLength, uint8_t* frame);
         static void send_cmd_s(uint8_t cmd);
+        static void interpretStatusCode(uint8_t data);
+        static void interpretResponse(uint8_t* data, uint8_t size);
+        static void interpretAntenna(uint8_t antennaCode);
 
 
 

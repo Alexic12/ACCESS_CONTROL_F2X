@@ -4,7 +4,8 @@
 CONFIG_ERROR();
 
 //OBJECT DECLARATION FOR ALL PROCESSES
-Reader R; //RFID Reader Class Object
+
+EthernetComms E; //Ethernet Communications Object
 
 // Function define so the states recognize them
 err_t F_init(fsm_action action);
@@ -43,14 +44,16 @@ err_t fsm::F_init(fsm_action action) {
     } else if (action == ACTION_PROCESS) {
 
         Serial.println("F.INIT, Process");
+        //Initialize Ethernet communications
+        E.conn_init();
+        E.connect_reader();
         delay(1000);
-
         State_M::fsm_changeState(&Machine_FSM, &FSM_diag);
        
 
     } else if (action == ACTION_EXIT) {  // 1 single time
 
-     Serial.println("F.INIT, Exit");
+        Serial.println("F.INIT, Exit");
         delay(1000);
     }
     NOERR();
@@ -86,8 +89,15 @@ err_t fsm::F_oper(fsm_action action) {
     } else if (action == ACTION_PROCESS) {
 
         Serial.println("F.OPER, Process");
-        R.send_cmd_s(TAG_INV);
-        delay(1000);
+        //R.send_cmd_s(TAG_INV);
+        byte hexArray[] = {0x04, 0x00, 0x50, 0xd7, 0x8};
+        byte read_antenna_1[] = {0x0b, 0x00, 0x01, 0x04, 0x00, 0x00, 0x06, 0x00, 0x80, 0x14, 0xfd, 0xfe};
+        byte read_all[] = {0x04, 0x00, 0x0f, 0xa5, 0xa2};
+        Serial.print("Array size");
+        Serial.println(sizeof(read_all));
+        E.send(read_all, sizeof(read_all));
+        E.receive();
+        delay(30000);
        
 
     } else if (action == ACTION_EXIT) {  // 1 single time
