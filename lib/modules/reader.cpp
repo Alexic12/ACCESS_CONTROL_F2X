@@ -10,10 +10,10 @@ CONFIG_ERROR();
 //unsigned char Reader::antena_3[] = {0x53, 0x57, 0x00, 0x03, 0xFF, 0x01, 0x53};
 
 
-err_t Reader::send_id(antenna_t ant, unsigned char tag[], access_res_t& res) {
+void Reader::send_id(antenna_t ant, unsigned char tag[], access_res_t& res) {
 
 
-    NOERR();
+    
 }
 
 uint16_t Reader::crc16(const uint8_t *data, size_t length) {
@@ -261,10 +261,10 @@ void Reader::interpretResponse(uint8_t* data, uint8_t size) {
         if (size < 19) {
             //Serial.println("Invalid data size.");
 
-                    // Print command confirmation
+            // Print command confirmation
             Serial.print("Command Confirmation: 0x");
             Serial.println(data[2], HEX);
-            
+
             Serial.print("Status Response: ");
             interpretStatusCode(data[3]);
 

@@ -6,6 +6,7 @@
 #include <Arduino.h>
 #include "reader.h"
 #include "ethernet_comms.h"
+#include "serial_uart.h"
 
 
 class fsm {

@@ -3,9 +3,14 @@
 
 CONFIG_ERROR();
 
+//Auxiliary Operation Variables
+volatile bool Serial_CMD = false;
+
+
 //OBJECT DECLARATION FOR ALL PROCESSES
 
 EthernetComms E; //Ethernet Communications Object
+Serial_uart SU;
 
 // Function define so the states recognize them
 err_t F_init(fsm_action action);
@@ -88,17 +93,18 @@ err_t fsm::F_oper(fsm_action action) {
 
     } else if (action == ACTION_PROCESS) {
 
-        Serial.println("F.OPER, Process");
+        //Serial.println("F.OPER, Process");
         //R.send_cmd_s(TAG_INV);
         byte hexArray[] = {0x04, 0x00, 0x50, 0xd7, 0x8};
         byte read_antenna_1[] = {0x0b, 0x00, 0x01, 0x04, 0x00, 0x00, 0x06, 0x00, 0x80, 0x14, 0xfd, 0xfe};
         byte read_all[] = {0x04, 0x00, 0x0f, 0xa5, 0xa2};
-        Serial.print("Array size");
-        Serial.println(sizeof(read_all));
-        E.send(read_all, sizeof(read_all));
-        E.receive();
-        delay(30000);
-       
+        if(Serial.available()>0){
+            SU.ReadSerial();
+           
+            //Serial_CMD = False;
+            
+        }
+        delay(100);
 
     } else if (action == ACTION_EXIT) {  // 1 single time
 

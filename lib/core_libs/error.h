@@ -1,6 +1,7 @@
 #ifndef ERROR_H
 #define ERROR_H
-#include "Arduino.h"
+#include <Arduino.h>
+#include "serial_uart.h"
 
 #define ERROR_MAX_FILES 100
 

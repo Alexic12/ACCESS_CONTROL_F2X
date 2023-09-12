@@ -16,17 +16,17 @@ byte EthernetComms::mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 uint16_t EthernetComms::port = 80;
 
 
-err_t EthernetComms::conn_init(){
+void EthernetComms::conn_init(){
     
     Ethernet.begin(mac, ip);
     delay(1000);
     Serial.println("Connected to LAN Network!");
     Serial.print("My IP address: ");
     Serial.println(Ethernet.localIP());
-    NOERR();
+    
 }
 
-err_t EthernetComms::connect_reader(){
+void EthernetComms::connect_reader(){
 
      // Connect to TCP server
     if (client.connect(reader_ip, reader_port)) {
@@ -36,16 +36,16 @@ err_t EthernetComms::connect_reader(){
      }
 
     
-    NOERR();
+    
 }
 
-err_t EthernetComms::disconnect(){
+void EthernetComms::disconnect(){
 
     
-    NOERR();
+    
 }
 
-err_t EthernetComms::receive(){
+void EthernetComms::receive(){
 
     while(1){
             if (client.available()) {
@@ -77,11 +77,11 @@ err_t EthernetComms::receive(){
     }
 
 
-    NOERR();
+    
 }
 
 
-err_t EthernetComms::send(byte* array, uint16_t dataLength){
+void EthernetComms::send(byte* array, uint16_t dataLength){
 
     //uint16_t dataLength = sizeof(array);
     Serial.println("Sending array to reader: ");
@@ -92,12 +92,12 @@ err_t EthernetComms::send(byte* array, uint16_t dataLength){
     }
     Serial.println(" ");
     client.write(array, dataLength);
-    NOERR();
+    
 }
 
-err_t EthernetComms::request(request_type_t req, const char* data, bool& res){
+void EthernetComms::request(request_type_t req, const char* data, bool& res){
     
 
-    NOERR();
+    
 }
 
