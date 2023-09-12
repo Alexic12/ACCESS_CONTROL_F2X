@@ -54,8 +54,6 @@ void Serial_uart::InterpretSerialCMD(char* buff){
     // If the command is "READ_TAG"
     if (strcmp(buff, "READ_TAG") == 0) {
         // Implement the action for the READ_TAG command
-
-
         handleReadTag();
     } 
     // If the command is "CLEAR_TAG_INV"
@@ -72,8 +70,6 @@ void Serial_uart::InterpretSerialCMD(char* buff){
         // If the received command is not recognized, you can print an error or handle it appropriately
         Serial.println("Unrecognized command.");
     }
-
-
 
 }
 
