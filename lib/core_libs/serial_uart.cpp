@@ -42,10 +42,6 @@ void Serial_uart::ReadSerial(){
 
         }
     }
-
-
-
-
 }
 
 void Serial_uart::InterpretSerialCMD(char* buff){
@@ -65,6 +61,15 @@ void Serial_uart::InterpretSerialCMD(char* buff){
     else if (strcmp(buff, "SEND_TAG_REQ") == 0) {
         // Implement the action for the SEND_TAG_REQ command
         handleSendTagReq();
+
+    }else if (strcmp(buff, "INIT_TAG_ENTRY") == 0) {
+        // Implement the action for the SEND_TAG_REQ command
+        handleInitTagEntry();
+
+    }else if (strcmp(buff, "INIT_TAG_EXIT") == 0) {
+        // Implement the action for the SEND_TAG_REQ command
+        handleInitTagExit();
+
     } 
     else {
         // If the received command is not recognized, you can print an error or handle it appropriately
@@ -82,6 +87,23 @@ void Serial_uart::handleReadTag() {
     Serial.println(sizeof(read_all));
     ET.send(read_all, sizeof(read_all));
     ET.receive();
+    
+}
+void Serial_uart::handleInitTagEntry() {
+    // Implementation for the READ_TAG command
+    Serial.println("Executing INIT_TAG_ENTRY command.");
+    // Your actual handling code here...
+    byte read_all[] = {0x04, 0x00, 0x0f, 0xa5, 0xa2};
+    ET.send(read_all, sizeof(read_all));
+    ET.receive();
+
+}
+
+void Serial_uart::handleInitTagExit() {
+    // Implementation for the READ_TAG command
+    Serial.println("Executing INIT_TAG_EXIT command.");
+    // Your actual handling code here...
+   
     
 }
 

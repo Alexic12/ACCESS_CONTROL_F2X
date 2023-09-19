@@ -18,6 +18,8 @@ class Serial_uart{
 
     private:
         static void handleReadTag();
+        static void handleInitTagEntry();
+        static void handleInitTagExit();
         static void handleClearTagInv();
         static void handleSendTagReq();
 

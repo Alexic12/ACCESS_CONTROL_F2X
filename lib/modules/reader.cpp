@@ -281,17 +281,24 @@ void Reader::interpretResponse(uint8_t* data, uint8_t size) {
 
         // Interpret and print antenna
         Serial.print("Antenna: ");
-        interpretAntenna(data[4]);
+        uint8_t antenna = interpretAntenna(data[4]);
 
         // Print constant byte
         Serial.print("Constant Byte: 0x");
         Serial.println(data[5], HEX);
 
         // Extract and print EPC-ID
+        uint8_t epcLength = data[6];
+        uint8_t epcID[epcLength]; // Declare the array based on EPC length
+
+        // Extract and print EPC-ID
         Serial.print("EPC Length: ");
         Serial.println(data[6]);
         Serial.print("EPC-ID: ");
         for (int i = 7; i < 7 + data[6]; i++) {
+
+            epcID[i] = data[7 + i];
+
             Serial.print("0x");
             Serial.print(data[i], HEX);
             if (i != 6 + data[6]) {
@@ -306,21 +313,27 @@ void Reader::interpretResponse(uint8_t* data, uint8_t size) {
     } 
 
 
-    void Reader::interpretAntenna(uint8_t antennaCode) {
+    uint8_t Reader::interpretAntenna(uint8_t antennaCode) {
+        uint8_t antenna = 0;
         switch (antennaCode) {
             case 0x01:
                 Serial.println("Antenna 1");
+                antenna = 1;
                 break;
             case 0x02:
                 Serial.println("Antenna 2");
+                antenna = 2;
                 break;
             case 0x04:
                 Serial.println("Antenna 3");
+                antenna = 3;
                 break;
             case 0x08:
                 Serial.println("Antenna 4");
+                antenna = 4;
                 break;
             default:
                 Serial.println("Unknown antenna code");
         }
+        return antenna;
     }

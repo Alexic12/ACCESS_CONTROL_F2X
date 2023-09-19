@@ -7,6 +7,7 @@
 #include "error.h"
 #include "../drivers/ethernet_comms.h"
 #include "reader_def.h"
+//#include <ArduinoJson.h>
 
 
 class Reader{
@@ -32,7 +33,7 @@ class Reader{
         static void send_cmd_s(uint8_t cmd);
         static void interpretStatusCode(uint8_t data);
         static void interpretResponse(uint8_t* data, uint8_t size);
-        static void interpretAntenna(uint8_t antennaCode);
+        static uint8_t interpretAntenna(uint8_t antennaCode);
 
 
 
